@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Room</title>
+    <style>
+        .chat-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .messages {
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .time {
+            color: #666;
+            font-size: 0.8em;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 5px;
+        }
+        button {
+            padding: 5px 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>Simple Chat Room</h2>
+        <div class="messages" id="messages">
+            {% for message in messages %}
+            <div class="message">
+                <span class="time">[{{ message.time }}]</span>
+                {{ message.text }}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+        <p><a href="/">Back to Home</a></p>
+    </div>
+
+    <script>
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (message) {
+                fetch('/send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `message=${encodeURIComponent(message)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateMessages(data.messages);
+                    input.value = '';
+                });
+            }
+        }
+
+        function updateMessages(messages) {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = messages.map(msg => `
+                <div class="message">
+                    <span class="time">[${msg.time}]</span>
+                    ${msg.text}
+                </div>
+            `).join('');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Auto-refresh messages every 2 seconds
+        setInterval(() => {
+            fetch('/chat')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const messages = doc.getElementById('messages');
+                    document.getElementById('messages').innerHTML = messages.innerHTML;
+                });
+        }, 2000);
+    </script>
+</body>
+</html>
